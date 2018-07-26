@@ -1,3 +1,11 @@
+# aws.ec2metadata 0.1.6
+
+* Added new functions: `is_ecs()` to check whether R is running in an Elastic Container Store (ECS) instance, and `ecs_metadata()` to retreive credentials from the container. (#2, h/t @jon-mago)
+
+# aws.ec2metadata 0.1.5
+
+* Now supports querying ECS task role
+
 # aws.ec2metadata 0.1.4
 
 * Previous `.onLoad()` functionality added in 0.1.3 is now moved to `.onAttach()` to comply with CRAN policy.
