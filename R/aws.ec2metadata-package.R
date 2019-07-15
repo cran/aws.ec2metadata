@@ -2,19 +2,46 @@ parse_lines <- function(x) {
     strsplit(x, "\n")[[1]]
 }
 
-get_instance_metadata <- 
-function(item,
-         version = "latest",
-         base_url = "http://169.254.169.254/", 
-         parse = "text",
-         ...) {
+get_timeout <- function(default_timeout="1") {
+    # check for timeout in env vars
+    timeout <- Sys.getenv("AWS_METADATA_SERVICE_TIMEOUT", default_timeout)
+    timeout <- as.integer(timeout)
+    if (is.na(timeout)) {
+        timeout <- 1
+    }
+    return(timeout*1000)
+}
+
+fetch <- function(uri) {
+    timeout <- get_timeout()
+    handle <- curl::new_handle(timeout_ms = timeout)
+    
+    response <- try(
+        curl::curl_fetch_memory(uri,
+                                handle = handle),
+        silent = TRUE
+    )
+    
+    if (inherits(response, "try-error")) {
+        return(NULL)
+    } else {
+        return(response)
+    }
+
+}
+
+get_instance_metadata <- function(item,
+                                  version = "latest",
+                                  base_url = "http://169.254.169.254/", 
+                                  parse = "text",
+                                  ...) {
     if (!missing(item)) {
         uri <- paste0(base_url, version, "/", item)
     } else {
         uri <- base_url
     }
-    response <- try(curl_fetch_memory(uri), silent = TRUE)
-    if (inherits(response, "try-error")) {
+    response <- fetch(uri)
+    if (is.null(response)) {
         stop("Request failed", call. = FALSE)
     } else if (response[["status_code"]] >= 400) {
         return(NULL)
@@ -64,6 +91,8 @@ instance_document <- function() {
 #' The function \code{item()} retrieves a particular metadata item specified by its full path.
 #'
 #' The remaining functions in the list are aliases for potentially commonly needed metadata items.
+#' 
+#' The environment variable \code{AWS_METADATA_SERVICE_TIMEOUT} controls the timeout for instance metadata checks, and defaults to 1 second.
 #' 
 #' @return \code{is_ec2()} and \code{is_ecs()} return a logical. Generally, all other functions will return a character string containing the requested information, otherwise a \code{NULL} if the response is empty. The \code{iam_role()} and \code{ecs_metadata()} functions return a list. An error will occur if, for some reason, the request otherwise fails.
 #' @examples
@@ -190,17 +219,19 @@ ENV_CONTAINER_CREDS <- "AWS_CONTAINER_CREDENTIALS_RELATIVE_URI"
 #' @export
 is_ecs <- function() {
     container_relative <- Sys.getenv(ENV_CONTAINER_CREDS)
-    return(!is.null(container_relative)&&(container_relative != ""))
+    return(!is.null(container_relative) && (container_relative != ""))
 }
 
 #' @rdname ec2metadata
 #' @param base_url Base URL for querying instance metadata
 #' @export
-ecs_metadata <- function(base_url="http://169.254.170.2") {
+ecs_metadata <- function(base_url = "http://169.254.170.2") {
     container_relative <- Sys.getenv(ENV_CONTAINER_CREDS)
     uri <- paste0(base_url, container_relative)
-    response <- try(curl::curl_fetch_memory(uri), silent = TRUE)
-    if (inherits(response, "try-error")) {
+    
+    response <- fetch(uri)
+    
+    if (is.null(response)) {
         out <- NULL
     } else {
         out <- jsonlite::fromJSON(rawToChar(response[["content"]]))

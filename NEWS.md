@@ -1,6 +1,11 @@
+# aws.ec2metadata 0.2.0
+
+* revise timeout for curl checks against instance metadata (Thanks @jmorten)
+* curl timeout now respects the AWS_METADATA_SERVICE_TIMEOUT environment variable (like boto3)
+
 # aws.ec2metadata 0.1.6
 
-* Added new functions: `is_ecs()` to check whether R is running in an Elastic Container Store (ECS) instance, and `ecs_metadata()` to retreive credentials from the container. (#2, h/t @jon-mago)
+* Added new functions: `is_ecs()` to check whether R is running in an Elastic Container Store (ECS) instance, and `ecs_metadata()` to retrieve credentials from the container. (#2, h/t @jon-mago)
 
 # aws.ec2metadata 0.1.5
 
